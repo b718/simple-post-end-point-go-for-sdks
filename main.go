@@ -14,6 +14,10 @@ type PostRequestResponse struct {
 	Message    string `json:"message"`
 }
 
+type RequestBody struct {
+	Data string `json:"data"`
+}
+
 func postHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -24,10 +28,20 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var body RequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "Failed to decode request body", http.StatusBadRequest)
+		json.NewEncoder(w).Encode(PostRequestResponse{
+			StatusCode: http.StatusBadRequest,
+			Message:    "Failed to decode request body",
+		})
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(PostRequestResponse{
 		StatusCode: http.StatusOK,
-		Message:    "OK",
+		Message:    body.Data,
 	})
 }
 
@@ -38,6 +52,7 @@ func main() {
 	http.HandleFunc("/", postHandler)
 
 	go func() {
+		fmt.Println("Starting server on port 4040")
 		if err := http.ListenAndServe("0.0.0.0:4040", nil); err != nil {
 			log.Fatal(err)
 		}
